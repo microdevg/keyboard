@@ -13,10 +13,10 @@
 
 // columns are inputs
 
-#define COL_1    GPIO_NUM_25
-#define COL_2    GPIO_NUM_26
-#define COL_3    GPIO_NUM_27
-#define COL_4    GPIO_NUM_14
+#define COL_1   GPIO_NUM_4 	// GPIO_NUM_25
+#define COL_2   GPIO_NUM_0 	// GPIO_NUM_26
+#define COL_3   GPIO_NUM_2 	// GPIO_NUM_27
+#define COL_4   GPIO_NUM_15 // GPIO_NUM_14
 
 //rows are output
 
