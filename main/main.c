@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <freertos/FreeRTOS.h>
-#include "keyboard.h"
-
+//#include "keyboard.h"
+#include "keypad.h"
 
 
 
@@ -43,23 +43,9 @@ static void add_key(char key){
 
 void app_main(void)
 {
-	keyboard_init();
-	int check = 0;
-	for (;;) {
-			check = keyboard_check();
-			if(check){
-				char key = keyboard_get_char();
-				check = 0;
-				if(key == KEY_FOR_CLEAN_DISPLAY){
-					printf("clean display\n");
-					memset(buffer,0,LEN_BUFFER);
-					len = 0;}
-				else{
-				add_key(key);
-				printf("%s\n",buffer);}
-				vTaskDelay(DELAY_FOR_PRESSED_KEY / portTICK_PERIOD_MS);	
-			}
-			vTaskDelay(50 / portTICK_PERIOD_MS);	
+	keypad_init();
+	for(;;){
+		vTaskDelay(200/portTICK_PERIOD_MS);
 	}
 
 }

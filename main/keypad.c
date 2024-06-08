@@ -1,9 +1,9 @@
-
-#include "keyboard.h"
+#include "keypad.h"
 #include <driver/gpio.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+
+
 
 
 #define NUM_ROW     4
@@ -48,7 +48,8 @@ char const KEYS[NUM_ROW][NUM_COL] = {
                          };
 
 
-static char _last_key = 0;
+
+
 
 static void _columns_config(void) {
 	gpio_config_t col_config;
@@ -58,7 +59,6 @@ static void _columns_config(void) {
 	col_config.pull_up_en = GPIO_PULLUP_ENABLE;
 	col_config.pull_down_en = GPIO_PULLUP_DISABLE;
 	gpio_config(&col_config);
-
 }
 
 static void _rows_config(void) {
@@ -73,42 +73,47 @@ static void _rows_config(void) {
 
 
 
-void keyboard_init(){
-	printf("Iniciando keyboard \n");
+
+
+void keypad_task(void* params){
+
+    for(;;){
+
+        for (uint8_t row = 0; row < NUM_ROW; row++)
+        {
+            gpio_set_level(rows[row], 0);
+            for (uint8_t col = 0; col < NUM_COL; col++) 
+            {
+                if (!gpio_get_level(cols[col]))   // Detecto el nivel bajo en cols[col]
+                {			
+                   
+                        printf("%c\n",KEYS[row][col]);       
+                }
+            }
+            gpio_set_level(rows[row], 1);
+        }
+        vTaskDelay(200/portTICK_PERIOD_MS);
+
+    }
+}
+
+
+
+
+
+void keypad_init(){
+
+    //Configuro pines
+    printf("Iniciando keyboard \n");
 	_columns_config();	
 	_rows_config();
 	for(int i = 0 ; i < NUM_ROW; i++) gpio_set_level(rows[i],1);
+
+
+    //Creo tareas y loop de eventos
+    xTaskCreate(keypad_task,"keypad_task",2*2000,NULL,0,NULL);
+
+
 }
 
 
-char keyboard_get_char(){
-	 return _last_key;
-}
-
-
-#define TBOUNCE_MS		250
-
-int keyboard_check(){
-	for (uint8_t row = 0; row < NUM_ROW; row++)
-	{
-		gpio_set_level(rows[row], 0);
-		for (uint8_t col = 0; col < NUM_COL; col++) 
-		{
-			if (!gpio_get_level(cols[col]))   // Detecto el nivel bajo en cols[col]
-			{			
-				// Aquí gestiono el rebote.
-				vTaskDelay(TBOUNCE_MS / portTICK_PERIOD_MS);	
-				if(gpio_get_level(cols[col])){
-					_last_key = KEYS[row][col];
-					return 1;
-				}
-				else{
-					return 0;
-				}
-				
-			}
-		}
-		gpio_set_level(rows[row], 1);
-	}
-	return 0;
-}
