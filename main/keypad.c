@@ -1,9 +1,13 @@
 #include "keypad.h"
+#include <string.h>
 #include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
 
+
+
+#define DELAY_BOUNCE        500
 
 
 #define NUM_ROW     4
@@ -49,6 +53,23 @@ char const KEYS[NUM_ROW][NUM_COL] = {
 
 
 
+#define KEYPAD_SEND         '#'
+#define KEYPAD_CLEAR        'C'
+#define KEYPAD_BUFFER_LEN   10
+
+
+static cb_get_key  _callback_key= NULL;
+static cb_get_buffer  _callback_buffer = NULL;
+static cb_clear     _callback_clear = NULL;
+
+
+static int _index = 0;
+static char _buffer[KEYPAD_BUFFER_LEN+1]={0};
+
+
+
+
+
 
 
 static void _columns_config(void) {
@@ -74,11 +95,11 @@ static void _rows_config(void) {
 
 
 
-
 void keypad_task(void* params){
 
-    for(;;){
 
+
+    for(;;){
         for (uint8_t row = 0; row < NUM_ROW; row++)
         {
             gpio_set_level(rows[row], 0);
@@ -86,13 +107,41 @@ void keypad_task(void* params){
             {
                 if (!gpio_get_level(cols[col]))   // Detecto el nivel bajo en cols[col]
                 {			
-                   
-                        printf("%c\n",KEYS[row][col]);       
-                }
-            }
+                     vTaskDelay(DELAY_BOUNCE/portTICK_PERIOD_MS);
+                    if( gpio_get_level(cols[col])){
+                    
+                        char k = KEYS[row][col];
+
+                        switch (k)
+                        {
+                        case KEYPAD_SEND:
+                            _buffer[_index]= 0; // cierro el cstring
+                            if(_callback_buffer)_callback_buffer(_buffer);
+                            _index = 0;
+                            break;
+                        case KEYPAD_CLEAR:
+                            _index = 0;
+                            if(_callback_clear)_callback_clear();
+                            break;
+                        default:
+                            if (_index < KEYPAD_BUFFER_LEN){
+                              if(_callback_key)_callback_key(k);
+                                _buffer[_index]= k;
+                                _index ++;
+                                }
+                            else {
+                                _buffer[KEYPAD_BUFFER_LEN]= 0; // cierro el cstring
+                                if(_callback_buffer)_callback_buffer(_buffer);
+                                _index = 0;
+                                }      
+                            break;
+                        }  //end switch
+                    }// end if        
+                }// end if
+            }// end for
             gpio_set_level(rows[row], 1);
         }
-        vTaskDelay(200/portTICK_PERIOD_MS);
+        vTaskDelay(50/portTICK_PERIOD_MS);
 
     }
 }
@@ -101,17 +150,21 @@ void keypad_task(void* params){
 
 
 
-void keypad_init(){
+void keypad_init( cb_get_key cb_key_pressed,
+                  cb_get_buffer cb_get_buffer,
+                  cb_clear    fclear){
 
+                
+    _callback_key = cb_key_pressed;
+    _callback_buffer = cb_get_buffer;
+    _callback_clear = fclear;
     //Configuro pines
-    printf("Iniciando keyboard \n");
 	_columns_config();	
 	_rows_config();
 	for(int i = 0 ; i < NUM_ROW; i++) gpio_set_level(rows[i],1);
 
 
-    //Creo tareas y loop de eventos
-    xTaskCreate(keypad_task,"keypad_task",2*2000,NULL,0,NULL);
+    xTaskCreate(keypad_task,"keypad_task",2*2000,NULL, uxTaskPriorityGet(NULL)-1,NULL);
 
 
 }
