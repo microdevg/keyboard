@@ -55,7 +55,7 @@ char const KEYS[NUM_ROW][NUM_COL] = {
 
 #define KEYPAD_SEND         '#'
 #define KEYPAD_CLEAR        'C'
-#define KEYPAD_BUFFER_LEN   10
+#define KEYPAD_BUFFER_LEN   30
 
 
 static cb_get_key  _callback_key= NULL;
